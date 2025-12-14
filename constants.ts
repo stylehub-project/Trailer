@@ -103,13 +103,3 @@ export const SCENES: Scene[] = [
     soundEffect: 'boom'
   }
 ];
-
-// In a real scenario, these would point to actual assets.
-// We are using empty strings or placeholders, relying on the logic to trigger "play".
-export const SOUND_PATHS = {
-  boom: '/sounds/boom.mp3',
-  whoosh: '/sounds/whoosh.mp3',
-  ambient: '/sounds/ambient.mp3',
-  glitch: '/sounds/glitch.mp3',
-  rise: '/sounds/whoosh.mp3', // Fallback
-};

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Background from './components/Background';
 import SceneRenderer from './components/SceneRenderer';
-import { SCENES, SOUND_PATHS, Scene } from './constants';
+import { SCENES, Scene } from './constants';
 import { Play, Volume2 } from 'lucide-react';
+import { initAudio, playAmbient, playSfx, stopAmbient } from './utils/audio';
 
 const App: React.FC = () => {
   const [hasStarted, setHasStarted] = useState(false);
@@ -10,52 +11,15 @@ const App: React.FC = () => {
   const [currentScene, setCurrentScene] = useState<Scene>(SCENES[0]);
   const [isFinished, setIsFinished] = useState(false);
   
-  const audioContextRef = useRef<AudioContext | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
-
-  // Audio Preloading and Management
-  const soundsRef = useRef<Record<string, HTMLAudioElement>>({});
-
-  useEffect(() => {
-    // Preload sounds
-    Object.entries(SOUND_PATHS).forEach(([key, path]) => {
-      const audio = new Audio(path);
-      audio.preload = 'auto';
-      audio.volume = key === 'ambient' ? 0.3 : 0.8;
-      soundsRef.current[key] = audio;
-    });
-
-    return () => {
-      // Cleanup audio
-      Object.values(soundsRef.current).forEach((audio) => {
-        if (audio instanceof HTMLAudioElement) {
-          audio.pause();
-          audio.src = '';
-        }
-      });
-    };
-  }, []);
-
-  const playSound = (effect: string) => {
-    const audio = soundsRef.current[effect];
-    if (audio) {
-      audio.currentTime = 0;
-      audio.play().catch(e => console.warn("Audio play failed (user interaction needed):", e));
-    }
-  };
 
   const startExperience = () => {
     setHasStarted(true);
     
-    // Initialize Audio Context for generic Web Audio API usage if needed, 
-    // but here we primarily use HTML5 Audio elements for simplicity with provided assets.
-    // However, playing the ambient track is key.
-    const ambient = soundsRef.current['ambient'];
-    if (ambient) {
-      ambient.loop = true;
-      ambient.play().catch(e => console.warn(e));
-    }
+    // Initialize Web Audio API
+    initAudio();
+    playAmbient();
     
     // Start RAF loop
     startTimeRef.current = performance.now();
@@ -75,16 +39,15 @@ const App: React.FC = () => {
     const lastScene = SCENES[SCENES.length - 1];
     if (elapsed > lastScene.end) {
       setIsFinished(true);
-      // Keep showing the last scene content or a replay button?
-      // For now, let's just stop the loop but keep the last scene rendered (it's covered by the find logic usually returning undefined if out of bounds)
-      // Actually, let's clamp to the last scene if we are done.
+      stopAmbient();
     } else if (activeScene && activeScene.id !== currentScene.id) {
        // Scene Change Detected
        setCurrentScene(prev => {
          if (prev.id !== activeScene.id) {
             // Trigger sound for new scene
-            if (activeScene.soundEffect) {
-               playSound(activeScene.soundEffect);
+            // Note: 'ambient' is handled by playAmbient() at start, so we ignore it here to prevent stacking/restarting
+            if (activeScene.soundEffect && activeScene.soundEffect !== 'ambient') {
+               playSfx(activeScene.soundEffect);
             }
             return activeScene;
          }
@@ -92,7 +55,7 @@ const App: React.FC = () => {
        });
     }
 
-    if (elapsed <= lastScene.end + 10) { // Keep running a bit after to ensure fades complete
+    if (elapsed <= lastScene.end + 5) {
       rafRef.current = requestAnimationFrame(loop);
     }
   };
@@ -101,6 +64,7 @@ const App: React.FC = () => {
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      stopAmbient();
     };
   }, []);
 
@@ -136,7 +100,7 @@ const App: React.FC = () => {
         <div className="relative z-10 w-full h-full">
            <SceneRenderer scene={currentScene} />
            
-           {/* Timeline Progress Bar (Optional, adds to high-tech feel) */}
+           {/* Timeline Progress Bar */}
            <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-900">
               <div 
                 className="h-full bg-cine-blue shadow-[0_0_10px_#00f0ff]" 

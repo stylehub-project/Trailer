@@ -11,19 +11,20 @@ interface Particle {
   speed: number;
   opacity: number;
   depth: number;
-  // Physics properties for interaction
-  offsetX: number;
-  offsetY: number;
-  vx: number;
-  vy: number;
 }
 
 interface OrbitParticle {
   angle: number;
   radius: number;
+  baseRadius: number;
   speed: number;
   size: number;
   color: string;
+  // Physics for interaction
+  offsetX: number;
+  offsetY: number;
+  vx: number;
+  vy: number;
 }
 
 interface Ripple {
@@ -38,7 +39,6 @@ const Background: React.FC = () => {
   const mouseRef = useRef({ x: 0, y: 0 });
   const ripplesRef = useRef<Ripple[]>([]);
   const lastMousePos = useRef({ x: 0, y: 0 });
-  // Add direct pixel position for orbit calculations
   const mousePixelPos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
   useEffect(() => {
@@ -53,9 +53,9 @@ const Background: React.FC = () => {
     canvas.width = width;
     canvas.height = height;
 
-    // Initialize particles with a depth factor for parallax
+    // Initialize particles (Background - Calm)
     const particles: Particle[] = [];
-    const particleCount = 200; // Increased count
+    const particleCount = 200;
 
     for (let i = 0; i < particleCount; i++) {
       const x = Math.random() * width;
@@ -71,6 +71,21 @@ const Background: React.FC = () => {
         speed: Math.random() * 0.2 + 0.05,
         opacity: Math.random() * 0.5 + 0.1,
         depth: Math.random() * 0.8 + 0.2,
+      });
+    }
+
+    // Initialize Orbit Particles (Interactive)
+    const orbitParticles: OrbitParticle[] = [];
+    const orbitCount = 40; // More orbit particles for effect
+    for (let i = 0; i < orbitCount; i++) {
+      const radius = 30 + Math.random() * 40;
+      orbitParticles.push({
+        angle: Math.random() * Math.PI * 2,
+        radius: radius,
+        baseRadius: radius,
+        speed: (Math.random() - 0.5) * 0.05,
+        size: Math.random() * 2 + 0.5,
+        color: Math.random() > 0.5 ? '#00f0ff' : '#ffffff',
         offsetX: 0,
         offsetY: 0,
         vx: 0,
@@ -78,20 +93,6 @@ const Background: React.FC = () => {
       });
     }
 
-    // Initialize Orbit Particles
-    const orbitParticles: OrbitParticle[] = [];
-    const orbitCount = 25;
-    for (let i = 0; i < orbitCount; i++) {
-      orbitParticles.push({
-        angle: Math.random() * Math.PI * 2,
-        radius: 30 + Math.random() * 40,
-        speed: (Math.random() - 0.5) * 0.05,
-        size: Math.random() * 1.5 + 0.5,
-        color: Math.random() > 0.5 ? '#00f0ff' : '#ffffff',
-      });
-    }
-
-    // Mouse interaction
     const handleMouseMove = (e: MouseEvent) => {
       const x = e.clientX;
       const y = e.clientY;
@@ -109,7 +110,6 @@ const Background: React.FC = () => {
       const dy = y - lastMousePos.current.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // Spawn a ripple if mouse moved significantly
       if (dist > 30) {
         ripplesRef.current.push({
           x,
@@ -122,24 +122,14 @@ const Background: React.FC = () => {
     };
 
     const handleClick = (e: MouseEvent) => {
-      const clickX = e.clientX;
-      const clickY = e.clientY;
-      
-      // Explosion: Apply velocity to all particles based on distance from click
-      particles.forEach(p => {
-        // Calculate current visual position to check distance correctly
-        // We approximate it with baseX for efficiency or just use raw distance to click
-        const dx = p.baseX - clickX;
-        const dy = p.baseY - clickY;
-        const dist = Math.sqrt(dx*dx + dy*dy);
+      // Explosion: Apply velocity ONLY to orbit particles
+      orbitParticles.forEach(p => {
+        // Explode outward from the center of the orbit ring (which is mouse pos)
+        const angle = p.angle; 
+        const force = 15 + Math.random() * 20;
         
-        // Closer particles get huge impulse, far ones get less but still some
-        const force = 5000 / (dist + 50); // Falloff
-        const angle = Math.atan2(dy, dx);
-        
-        // Add velocity
-        p.vx += Math.cos(angle) * force * 5;
-        p.vy += Math.sin(angle) * force * 5;
+        p.vx += Math.cos(angle) * force;
+        p.vy += Math.sin(angle) * force;
       });
     };
 
@@ -149,83 +139,51 @@ const Background: React.FC = () => {
     let animationFrameId: number;
     let targetX = 0;
     let targetY = 0;
-    // Smooth orbit center follower
     let orbitCenterX = width / 2;
     let orbitCenterY = height / 2;
 
     const render = () => {
-      // Audio Reactivity
-      const audioIntensity = getAudioIntensity(); // 0 to 1
-      const pulseFactor = 1 + audioIntensity * 2; // Scale multiplier
+      const audioIntensity = getAudioIntensity();
+      const pulseFactor = 1 + audioIntensity * 2;
 
       ctx.clearRect(0, 0, width, height);
 
-      // Smooth interpolation for mouse movement (lag effect)
+      // Smooth mouse follow
       targetX += (mouseRef.current.x - targetX) * 0.05;
       targetY += (mouseRef.current.y - targetY) * 0.05;
       
-      // Smooth Orbit Center
       orbitCenterX += (mousePixelPos.current.x - orbitCenterX) * 0.1;
       orbitCenterY += (mousePixelPos.current.y - orbitCenterY) * 0.1;
 
       // Update Ripples
       for (let i = ripplesRef.current.length - 1; i >= 0; i--) {
         const ripple = ripplesRef.current[i];
-        ripple.radius += 5; // Expand speed
-        ripple.age += 0.015; // Fade speed
-
-        if (ripple.age >= 1) {
-          ripplesRef.current.splice(i, 1);
-        }
+        ripple.radius += 5;
+        ripple.age += 0.015;
+        if (ripple.age >= 1) ripplesRef.current.splice(i, 1);
       }
       
-      // Draw Background Particles
+      // Draw Background Particles (Calm, no physics interaction from click)
       particles.forEach((p) => {
-        // --- PHYSICS UPDATE (Explosion & Return) ---
-        // Spring force pulling back to 0,0 offset
-        const k = 0.05; // Spring stiffness
-        const drag = 0.92; // Friction
-
-        // Acceleration towards home (offset 0)
-        const ax = -k * p.offsetX;
-        const ay = -k * p.offsetY;
-
-        p.vx += ax;
-        p.vy += ay;
-        p.vx *= drag;
-        p.vy *= drag;
-
-        p.offsetX += p.vx;
-        p.offsetY += p.vy;
-
-
-        // --- STANDARD MOVEMENT ---
-        // 1. Audio Reactive Size
         const currentSize = p.baseSize * pulseFactor;
-
-        // 2. Vertical scrolling (affected slightly by audio intensity for speed burst)
+        
         p.baseY -= p.speed * (1 + audioIntensity * 2);
         if (p.baseY < -50) p.baseY = height + 50;
 
-        // 3. Apply Mouse Parallax
         const parallaxX = targetX * p.depth * 60; 
         const parallaxY = targetY * p.depth * 60;
         
-        let drawX = p.baseX + parallaxX + p.offsetX;
-        let drawY = p.baseY + parallaxY + p.offsetY;
+        let drawX = p.baseX + parallaxX;
+        let drawY = p.baseY + parallaxY;
 
-        // 4. Apply Ripple Distortion
+        // Ripples still affect background for atmosphere
         let rippleOffsetX = 0;
         let rippleOffsetY = 0;
-
         ripplesRef.current.forEach(r => {
             const dx = drawX - r.x;
             const dy = drawY - r.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            
-            // Interaction band width
             const distFromWave = Math.abs(dist - r.radius);
-            
             if (distFromWave < 50) {
                 const force = (1 - r.age) * (1 - distFromWave / 50) * 8;
                 const angle = Math.atan2(dy, dx);
@@ -237,12 +195,7 @@ const Background: React.FC = () => {
         drawX += rippleOffsetX;
         drawY += rippleOffsetY;
 
-        // Wrapping
-        if (drawX > width + 50) {
-           drawX -= (width + 100);
-           // Reset offset to avoid popping back with massive offset
-           // Or just let it wrap visually
-        }
+        if (drawX > width + 50) drawX -= (width + 100);
         if (drawX < -50) drawX += (width + 100);
 
         ctx.fillStyle = `rgba(200, 220, 255, ${p.opacity * (0.8 + audioIntensity)})`;
@@ -251,20 +204,33 @@ const Background: React.FC = () => {
         ctx.fill();
       });
 
-      // Draw Orbit Particles
+      // Draw Orbit Particles (Interactive)
       orbitParticles.forEach(op => {
+        // Rotation
         op.angle += op.speed + (op.speed > 0 ? 0.01 : -0.01) * audioIntensity;
         
-        // Variable radius based on audio
-        const dynamicRadius = op.radius + (Math.sin(Date.now() * 0.005 + op.angle) * 10 * audioIntensity);
+        // Physics update (Spring back to center)
+        const k = 0.05; // Stiffness
+        const drag = 0.9; // Friction
 
-        const opX = orbitCenterX + Math.cos(op.angle) * dynamicRadius;
-        const opY = orbitCenterY + Math.sin(op.angle) * dynamicRadius;
+        const ax = -k * op.offsetX;
+        const ay = -k * op.offsetY;
+
+        op.vx += ax;
+        op.vy += ay;
+        op.vx *= drag;
+        op.vy *= drag;
+
+        op.offsetX += op.vx;
+        op.offsetY += op.vy;
+
+        // Calculate Position
+        const dynamicRadius = op.radius + (Math.sin(Date.now() * 0.005 + op.angle) * 10 * audioIntensity);
+        const opX = orbitCenterX + Math.cos(op.angle) * dynamicRadius + op.offsetX;
+        const opY = orbitCenterY + Math.sin(op.angle) * dynamicRadius + op.offsetY;
 
         ctx.fillStyle = op.color;
-        // Make them fade if far from mouse actually moving (optional, but looks nice)
-        // keeping constant for now as requested
-        ctx.globalAlpha = 0.6 + audioIntensity * 0.4;
+        ctx.globalAlpha = 0.8 + audioIntensity * 0.2;
         ctx.beginPath();
         ctx.arc(opX, opY, op.size * (1 + audioIntensity), 0, Math.PI * 2);
         ctx.fill();
@@ -295,14 +261,9 @@ const Background: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-      {/* Cinematic Noise Overlay */}
       <div className="absolute inset-0 opacity-[0.07] bg-noise mix-blend-overlay pointer-events-none" />
-      
-      {/* Dark Gradient Vignette */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black opacity-80" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#000_120%)]" />
-
-      {/* Canvas for stars */}
       <canvas ref={canvasRef} className="absolute inset-0 opacity-50 pointer-events-auto" />
     </div>
   );

@@ -14,7 +14,7 @@ const containerStagger: Variants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.3, // Delay between lines
+      staggerChildren: 0.2, // Faster stagger
       delayChildren: 0.1,
     },
   },
@@ -25,13 +25,22 @@ const containerStagger: Variants = {
   },
 };
 
+// Line wrapper variant to ensure participation in stagger
+const lineWrapperVariant: Variants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { duration: 0.01 } // Instant, let children animate
+  }
+};
+
 // Line-level stagger (staggers letters)
 const lineStagger: Variants = {
   hidden: { opacity: 1 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.05, // Fast ripple for letters
+      staggerChildren: 0.04, 
     },
   },
 };
@@ -40,9 +49,9 @@ const lineStagger: Variants = {
 const cinematicRevealVariant: Variants = {
   hidden: { 
     opacity: 0, 
-    y: 60, 
-    scale: 0.8,
-    filter: 'blur(10px)',
+    y: 30,  // Reduced from 60 to avoid clipping
+    scale: 0.9,
+    filter: 'blur(8px)',
     rotateX: 45
   },
   visible: {
@@ -57,17 +66,6 @@ const cinematicRevealVariant: Variants = {
       stiffness: 80,
     },
   },
-};
-
-// Aggressive Slide & Slam for Stacks (Legacy/Alternative)
-const stackItemVariant: Variants = {
-  hidden: { x: -100, opacity: 0, skewX: 20 },
-  visible: { 
-    x: 0, 
-    opacity: 1, 
-    skewX: 0,
-    transition: { type: 'spring', stiffness: 100, damping: 12 }
-  }
 };
 
 // Modified Glitch Effect
@@ -93,14 +91,12 @@ const glitchItemVariant: Variants = {
 };
 
 // Helper to split text into letters
-// CRITICAL: Wrapper must be 'motion.span' to propagate variants correctly
+// Removed explicit initial/animate to allow parent control
 const SplitText: React.FC<{ text: string; variant?: Variants; className?: string }> = ({ text, variant, className }) => {
   return (
     <motion.span 
       className={`inline-block whitespace-nowrap ${className}`}
-      variants={lineStagger} 
-      initial="hidden"
-      animate="visible"
+      variants={lineStagger}
     >
       {text.split('').map((char, i) => (
         <motion.span key={i} variants={variant} className="inline-block">
@@ -125,7 +121,7 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
             className="flex flex-col items-center justify-center text-center space-y-2 md:space-y-4"
           >
             {scene.lines.map((line, idx) => (
-              <motion.div key={idx} className="overflow-hidden p-2">
+              <motion.div key={idx} variants={lineWrapperVariant} className="overflow-visible p-2">
                 <motion.h1 className="text-4xl md:text-6xl lg:text-8xl font-orbitron font-bold tracking-widest-cine text-white text-glow">
                   <SplitText text={line} variant={cinematicRevealVariant} />
                 </motion.h1>
@@ -144,7 +140,7 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
             className="flex flex-col items-center justify-center text-center space-y-2 md:space-y-4"
           >
             {scene.lines.map((line, idx) => (
-              <motion.div key={idx} className="overflow-hidden">
+              <motion.div key={idx} variants={lineWrapperVariant} className="overflow-visible">
                 <motion.h1 className="text-4xl md:text-6xl lg:text-8xl font-orbitron font-bold tracking-widest-cine text-white text-glow">
                   <SplitText text={line} variant={cinematicRevealVariant} />
                 </motion.h1>
@@ -153,7 +149,7 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
             {scene.subText && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 0.8, y: 0, transition: { delay: 1.5, duration: 1.5 } }}
+                animate={{ opacity: 0.8, y: 0, transition: { delay: 1.0, duration: 1.5 } }}
                 className="mt-8"
               >
                 <p className="text-xs md:text-sm font-sans tracking-[0.5em] text-cine-blue uppercase border-b border-cine-blue/30 pb-2 inline-block">
@@ -174,7 +170,11 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
             className="flex flex-col items-center justify-center space-y-4"
           >
             {scene.lines.map((line, idx) => (
-              <motion.h2 key={idx} className="text-4xl md:text-7xl font-orbitron font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-white to-gray-400">
+              <motion.h2 
+                key={idx} 
+                variants={lineWrapperVariant}
+                className="text-4xl md:text-7xl font-orbitron font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-white to-gray-400"
+              >
                   <SplitText text={line} variant={cinematicRevealVariant} />
               </motion.h2>
             ))}

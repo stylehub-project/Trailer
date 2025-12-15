@@ -11,6 +11,11 @@ interface Particle {
   speed: number;
   opacity: number;
   depth: number;
+  // Physics properties for interaction
+  offsetX: number;
+  offsetY: number;
+  vx: number;
+  vy: number;
 }
 
 interface OrbitParticle {
@@ -66,6 +71,10 @@ const Background: React.FC = () => {
         speed: Math.random() * 0.2 + 0.05,
         opacity: Math.random() * 0.5 + 0.1,
         depth: Math.random() * 0.8 + 0.2,
+        offsetX: 0,
+        offsetY: 0,
+        vx: 0,
+        vy: 0
       });
     }
 
@@ -111,7 +120,31 @@ const Background: React.FC = () => {
         lastMousePos.current = { x, y };
       }
     };
+
+    const handleClick = (e: MouseEvent) => {
+      const clickX = e.clientX;
+      const clickY = e.clientY;
+      
+      // Explosion: Apply velocity to all particles based on distance from click
+      particles.forEach(p => {
+        // Calculate current visual position to check distance correctly
+        // We approximate it with baseX for efficiency or just use raw distance to click
+        const dx = p.baseX - clickX;
+        const dy = p.baseY - clickY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        // Closer particles get huge impulse, far ones get less but still some
+        const force = 5000 / (dist + 50); // Falloff
+        const angle = Math.atan2(dy, dx);
+        
+        // Add velocity
+        p.vx += Math.cos(angle) * force * 5;
+        p.vy += Math.sin(angle) * force * 5;
+      });
+    };
+
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousedown', handleClick);
 
     let animationFrameId: number;
     let targetX = 0;
@@ -148,6 +181,25 @@ const Background: React.FC = () => {
       
       // Draw Background Particles
       particles.forEach((p) => {
+        // --- PHYSICS UPDATE (Explosion & Return) ---
+        // Spring force pulling back to 0,0 offset
+        const k = 0.05; // Spring stiffness
+        const drag = 0.92; // Friction
+
+        // Acceleration towards home (offset 0)
+        const ax = -k * p.offsetX;
+        const ay = -k * p.offsetY;
+
+        p.vx += ax;
+        p.vy += ay;
+        p.vx *= drag;
+        p.vy *= drag;
+
+        p.offsetX += p.vx;
+        p.offsetY += p.vy;
+
+
+        // --- STANDARD MOVEMENT ---
         // 1. Audio Reactive Size
         const currentSize = p.baseSize * pulseFactor;
 
@@ -159,8 +211,8 @@ const Background: React.FC = () => {
         const parallaxX = targetX * p.depth * 60; 
         const parallaxY = targetY * p.depth * 60;
         
-        let drawX = p.baseX + parallaxX;
-        let drawY = p.baseY + parallaxY;
+        let drawX = p.baseX + parallaxX + p.offsetX;
+        let drawY = p.baseY + parallaxY + p.offsetY;
 
         // 4. Apply Ripple Distortion
         let rippleOffsetX = 0;
@@ -186,7 +238,11 @@ const Background: React.FC = () => {
         drawY += rippleOffsetY;
 
         // Wrapping
-        if (drawX > width + 50) drawX -= (width + 100);
+        if (drawX > width + 50) {
+           drawX -= (width + 100);
+           // Reset offset to avoid popping back with massive offset
+           // Or just let it wrap visually
+        }
         if (drawX < -50) drawX += (width + 100);
 
         ctx.fillStyle = `rgba(200, 220, 255, ${p.opacity * (0.8 + audioIntensity)})`;
@@ -233,6 +289,7 @@ const Background: React.FC = () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousedown', handleClick);
     };
   }, []);
 
@@ -246,7 +303,7 @@ const Background: React.FC = () => {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#000_120%)]" />
 
       {/* Canvas for stars */}
-      <canvas ref={canvasRef} className="absolute inset-0 opacity-50" />
+      <canvas ref={canvasRef} className="absolute inset-0 opacity-50 pointer-events-auto" />
     </div>
   );
 };

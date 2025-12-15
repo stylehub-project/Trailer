@@ -8,13 +8,13 @@ interface SceneRendererProps {
 
 // -- Animation Variants --
 
-// Stagger container for words/letters
-const staggerContainer: Variants = {
+// Top-level container stagger (staggers lines)
+const containerStagger: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08, // Slightly faster stagger for improved pacing
+      staggerChildren: 0.3, // Delay between lines
       delayChildren: 0.1,
     },
   },
@@ -25,13 +25,24 @@ const staggerContainer: Variants = {
   },
 };
 
+// Line-level stagger (staggers letters)
+const lineStagger: Variants = {
+  hidden: { opacity: 1 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05, // Fast ripple for letters
+    },
+  },
+};
+
 // Cinematic Letter Reveal (Up and Out) for Intro/Stack
 const cinematicRevealVariant: Variants = {
   hidden: { 
     opacity: 0, 
-    y: 40, 
+    y: 60, 
     scale: 0.8,
-    filter: 'blur(8px)',
+    filter: 'blur(10px)',
     rotateX: 45
   },
   visible: {
@@ -42,9 +53,8 @@ const cinematicRevealVariant: Variants = {
     rotateX: 0,
     transition: { 
       type: "spring",
-      damping: 15,
-      stiffness: 100,
-      duration: 0.8 
+      damping: 12,
+      stiffness: 80,
     },
   },
 };
@@ -60,7 +70,7 @@ const stackItemVariant: Variants = {
   }
 };
 
-// Modified Glitch Effect: Less shaking, more readable, longer intervals
+// Modified Glitch Effect
 const glitchItemVariant: Variants = {
   hidden: { opacity: 0 },
   visible: { 
@@ -83,15 +93,21 @@ const glitchItemVariant: Variants = {
 };
 
 // Helper to split text into letters
+// CRITICAL: Wrapper must be 'motion.span' to propagate variants correctly
 const SplitText: React.FC<{ text: string; variant?: Variants; className?: string }> = ({ text, variant, className }) => {
   return (
-    <span className={`inline-block whitespace-nowrap ${className}`}>
+    <motion.span 
+      className={`inline-block whitespace-nowrap ${className}`}
+      variants={lineStagger} 
+      initial="hidden"
+      animate="visible"
+    >
       {text.split('').map((char, i) => (
         <motion.span key={i} variants={variant} className="inline-block">
           {char === ' ' ? '\u00A0' : char}
         </motion.span>
       ))}
-    </span>
+    </motion.span>
   );
 };
 
@@ -102,18 +118,18 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
       case 'intro':
         return (
           <motion.div
-            variants={staggerContainer}
+            variants={containerStagger}
             initial="hidden"
             animate="visible"
             exit="exit"
             className="flex flex-col items-center justify-center text-center space-y-2 md:space-y-4"
           >
             {scene.lines.map((line, idx) => (
-              <div key={idx} className="overflow-hidden p-2">
+              <motion.div key={idx} className="overflow-hidden p-2">
                 <motion.h1 className="text-4xl md:text-6xl lg:text-8xl font-orbitron font-bold tracking-widest-cine text-white text-glow">
                   <SplitText text={line} variant={cinematicRevealVariant} />
                 </motion.h1>
-              </div>
+              </motion.div>
             ))}
           </motion.div>
         );
@@ -121,18 +137,18 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
       case 'hero':
          return (
           <motion.div
-            variants={staggerContainer}
+            variants={containerStagger}
             initial="hidden"
             animate="visible"
             exit="exit"
             className="flex flex-col items-center justify-center text-center space-y-2 md:space-y-4"
           >
             {scene.lines.map((line, idx) => (
-              <div key={idx} className="overflow-hidden">
+              <motion.div key={idx} className="overflow-hidden">
                 <motion.h1 className="text-4xl md:text-6xl lg:text-8xl font-orbitron font-bold tracking-widest-cine text-white text-glow">
                   <SplitText text={line} variant={cinematicRevealVariant} />
                 </motion.h1>
-              </div>
+              </motion.div>
             ))}
             {scene.subText && (
               <motion.div
@@ -151,16 +167,16 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
       case 'stack':
         return (
           <motion.div
-            variants={staggerContainer}
+            variants={containerStagger}
             initial="hidden"
             animate="visible"
             exit="exit"
             className="flex flex-col items-center justify-center space-y-4"
           >
             {scene.lines.map((line, idx) => (
-              <h2 key={idx} className="text-4xl md:text-7xl font-orbitron font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-white to-gray-400">
+              <motion.h2 key={idx} className="text-4xl md:text-7xl font-orbitron font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-white to-gray-400">
                   <SplitText text={line} variant={cinematicRevealVariant} />
-              </h2>
+              </motion.h2>
             ))}
           </motion.div>
         );
@@ -223,7 +239,7 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
                   {line}
                 </span>
                 
-                {/* Glitch Layer 1 - Cyan/Blue - Toned down */}
+                {/* Glitch Layer 1 - Cyan/Blue */}
                 <motion.span 
                     animate={{ 
                         x: [0, -5, 5, 0], 
@@ -236,7 +252,7 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
                     {line}
                 </motion.span>
 
-                {/* Glitch Layer 2 - Red/Magenta - Toned down */}
+                {/* Glitch Layer 2 - Red/Magenta */}
                 <motion.span 
                     animate={{ 
                         x: [0, 5, -5, 0], 
@@ -249,7 +265,7 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
                     {line}
                 </motion.span>
                 
-                 {/* Glitch Layer 3 - White Slice - Toned down */}
+                 {/* Glitch Layer 3 - White Slice */}
                 <motion.span 
                     animate={{ 
                         clipPath: ['inset(40% 0 40% 0)', 'inset(20% 0 70% 0)', 'inset(70% 0 10% 0)'],
@@ -319,8 +335,6 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
         <motion.div
           key={scene.id}
           className="w-full h-full flex items-center justify-center"
-          // We handle exit animations within the specific scene renderers usually, 
-          // but having a container exit ensures clean breaks
           exit={{ opacity: 0, transition: { duration: 0.5 } }}
         >
           {renderContent()}

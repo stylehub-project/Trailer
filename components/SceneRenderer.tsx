@@ -1,58 +1,86 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Scene } from '../constants';
 
 interface SceneRendererProps {
   scene: Scene;
 }
 
-const containerVariants = {
+// -- Animation Variants --
+
+// Stagger container for words/letters
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.3, delayChildren: 0.2 }
-  },
-  exit: { 
-    opacity: 0, 
-    filter: 'blur(10px)',
-    transition: { duration: 1, ease: 'easeInOut' }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20, scale: 1.1, filter: 'blur(10px)' },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    scale: 1, 
-    filter: 'blur(0px)',
-    transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] } // Cinematic easing
-  }
-};
-
-const impactVariants = {
-  hidden: { opacity: 0, scale: 0.8, filter: 'blur(20px)' },
-  visible: { 
-    opacity: 1, 
-    scale: 1, 
-    filter: 'blur(0px)',
-    transition: { duration: 0.8, ease: 'easeOut' }
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
   },
   exit: {
     opacity: 0,
-    scale: 1.2,
-    filter: 'blur(20px)',
-    transition: { duration: 1 }
+    filter: 'blur(10px)',
+    transition: { duration: 0.8 },
+  },
+};
+
+// Cinematic Letter Reveal
+const letterVariant: Variants = {
+  hidden: { opacity: 0, y: 30, filter: 'blur(8px)', scale: 1.1 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    scale: 1,
+    transition: { duration: 0.8, ease: [0.2, 0.65, 0.3, 0.9] },
+  },
+};
+
+// Aggressive Slide & Slam for Stacks
+const stackItemVariant: Variants = {
+  hidden: { x: -100, opacity: 0, skewX: 20 },
+  visible: { 
+    x: 0, 
+    opacity: 1, 
+    skewX: 0,
+    transition: { type: 'spring', stiffness: 100, damping: 12 }
   }
 };
 
-const glitchVariants = {
-  hidden: { opacity: 0, x: -10 },
+// Glitch effect that violently shakes
+const glitchItemVariant: Variants = {
+  hidden: { opacity: 0 },
   visible: { 
-    opacity: 1, 
-    x: 0,
-    transition: { type: 'spring', stiffness: 300, damping: 10, staggerChildren: 0.1 }
+    opacity: 1,
+    textShadow: [
+      "0px 0px 0px rgba(0,0,0,0)",
+      "-2px 0px 0px rgba(255,0,0,0.8), 2px 0px 0px rgba(0,255,255,0.8)",
+      "0px 0px 0px rgba(0,0,0,0)",
+      "4px 0px 0px rgba(255,0,0,0.8), -4px 0px 0px rgba(0,255,255,0.8)",
+      "0px 0px 0px rgba(0,0,0,0)",
+    ],
+    x: [0, -2, 2, -1, 1, 0],
+    transition: { 
+      duration: 0.4, 
+      repeat: Infinity, 
+      repeatType: "mirror",
+      repeatDelay: 2
+    }
   }
+};
+
+// Helper to split text into letters
+const SplitText: React.FC<{ text: string; variant?: Variants; className?: string }> = ({ text, variant, className }) => {
+  return (
+    <span className={`inline-block ${className}`}>
+      {text.split('').map((char, i) => (
+        <motion.span key={i} variants={variant} className="inline-block">
+          {char === ' ' ? '\u00A0' : char}
+        </motion.span>
+      ))}
+    </span>
+  );
 };
 
 const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
@@ -63,29 +91,29 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
       case 'hero':
         return (
           <motion.div
-            variants={containerVariants}
+            variants={staggerContainer}
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="flex flex-col items-center justify-center text-center space-y-4"
+            className="flex flex-col items-center justify-center text-center space-y-2 md:space-y-4"
           >
             {scene.lines.map((line, idx) => (
-              <motion.h1
-                key={idx}
-                variants={itemVariants}
-                className="text-4xl md:text-6xl lg:text-8xl font-orbitron font-bold tracking-widest-cine text-white text-glow"
-              >
-                {line}
-              </motion.h1>
+              <div key={idx} className="overflow-hidden">
+                <motion.h1 className="text-4xl md:text-6xl lg:text-8xl font-orbitron font-bold tracking-widest-cine text-white text-glow">
+                  <SplitText text={line} variant={letterVariant} />
+                </motion.h1>
+              </div>
             ))}
             {scene.subText && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.7, transition: { delay: 1, duration: 2 } }}
-                className="mt-6 text-sm md:text-lg font-sans tracking-[0.3em] text-cyan-200 uppercase"
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 0.8, y: 0, transition: { delay: 1.5, duration: 1.5 } }}
+                className="mt-8"
               >
-                {scene.subText}
-              </motion.p>
+                <p className="text-xs md:text-sm font-sans tracking-[0.5em] text-cine-blue uppercase border-b border-cine-blue/30 pb-2 inline-block">
+                  {scene.subText}
+                </p>
+              </motion.div>
             )}
           </motion.div>
         );
@@ -93,17 +121,17 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
       case 'stack':
         return (
           <motion.div
-            variants={containerVariants}
+            variants={staggerContainer}
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="flex flex-col items-center justify-center space-y-2 md:space-y-6"
+            className="flex flex-col items-center justify-center space-y-4"
           >
             {scene.lines.map((line, idx) => (
               <motion.h2
                 key={idx}
-                variants={itemVariants}
-                className="text-3xl md:text-6xl font-orbitron font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500"
+                variants={stackItemVariant}
+                className="text-4xl md:text-7xl font-orbitron font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-white to-gray-400"
               >
                 {line}
               </motion.h2>
@@ -114,28 +142,38 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
       case 'impact':
         return (
           <motion.div
-            variants={impactVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
+            variants={{
+                visible: { transition: { staggerChildren: 0.2 } },
+                exit: { opacity: 0, scale: 1.1, filter: 'blur(10px)', transition: { duration: 0.5 } }
+            }}
             className="flex flex-col items-center justify-center text-center z-10"
           >
             {scene.lines.map((line, idx) => (
-              <h1 key={idx} className="text-6xl md:text-9xl font-orbitron font-black text-white tracking-tighter text-glow-strong mb-4">
+              <motion.h1 
+                key={idx} 
+                variants={{
+                    hidden: { opacity: 0, scale: 2, filter: "blur(20px)" },
+                    visible: { opacity: 1, scale: 1, filter: "blur(0px)", transition: { type: "spring", stiffness: 200, damping: 20 } }
+                }}
+                className="text-6xl md:text-9xl font-orbitron font-black text-white tracking-tight text-glow-strong mb-2"
+              >
                 {line}
-              </h1>
+              </motion.h1>
             ))}
             {scene.subText && (
               <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: '100%', transition: { delay: 0.5, duration: 1 } }}
-                className="h-[1px] bg-cine-blue shadow-[0_0_10px_#00f0ff] w-0 max-w-md my-4"
-              />
-            )}
-            {scene.subText && (
-               <p className="text-cine-blue font-sans tracking-[0.5em] text-sm md:text-xl uppercase">
-                 {scene.subText}
-               </p>
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: '100%', opacity: 1, transition: { delay: 0.5, duration: 0.8, ease: "circOut" } }}
+                className="flex flex-col items-center mt-6 w-full max-w-lg"
+              >
+                 <div className="h-[2px] w-full bg-cine-blue shadow-[0_0_15px_#00f0ff]" />
+                 <p className="mt-4 text-cine-blue font-sans tracking-[0.6em] text-sm md:text-xl uppercase">
+                   {scene.subText}
+                 </p>
+              </motion.div>
             )}
           </motion.div>
         );
@@ -143,26 +181,44 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
       case 'glitch':
         return (
            <motion.div
-            variants={glitchVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="flex flex-col items-center text-center space-y-2"
+            className="flex flex-col items-center text-center space-y-4"
           >
              {scene.lines.map((line, idx) => (
-              <motion.span
+              <motion.div
                 key={idx}
-                variants={{
-                  hidden: { opacity: 0, skewX: 20 },
-                  visible: { opacity: 1, skewX: 0 }
-                }}
-                className="text-4xl md:text-7xl font-mono font-bold text-white tracking-widest"
-                style={{
-                  textShadow: `${Math.random() * 4 - 2}px ${Math.random() * 4 - 2}px 0 rgba(255,0,0,0.5), ${Math.random() * 4 - 2}px ${Math.random() * 4 - 2}px 0 rgba(0,0,255,0.5)`
-                }}
+                variants={glitchItemVariant}
+                className="relative"
               >
-                {line}
-              </motion.span>
+                <span className="text-5xl md:text-8xl font-mono font-bold text-white tracking-widest relative z-10 mix-blend-difference">
+                  {line}
+                </span>
+                {/* Glitch layers */}
+                <motion.span 
+                    animate={{ 
+                        x: [0, -4, 4, 0], 
+                        opacity: [0, 0.8, 0],
+                        skewX: [0, 20, -20, 0] 
+                    }}
+                    transition={{ repeat: Infinity, duration: 0.2, repeatDelay: Math.random() * 2 }}
+                    className="absolute top-0 left-0 text-5xl md:text-8xl font-mono font-bold text-red-500 tracking-widest opacity-50 z-0"
+                >
+                    {line}
+                </motion.span>
+                <motion.span 
+                    animate={{ 
+                        x: [0, 4, -4, 0], 
+                        opacity: [0, 0.8, 0],
+                        skewX: [0, -10, 10, 0]
+                    }}
+                    transition={{ repeat: Infinity, duration: 0.3, repeatDelay: Math.random() * 3 }}
+                    className="absolute top-0 left-0 text-5xl md:text-8xl font-mono font-bold text-cyan-500 tracking-widest opacity-50 z-0"
+                >
+                    {line}
+                </motion.span>
+              </motion.div>
             ))}
           </motion.div>
         );
@@ -170,27 +226,41 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
       case 'final':
         return (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1, transition: { duration: 3 } }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 2 } }}
             className="flex flex-col items-center justify-center text-center"
           >
-            <p className="text-gray-400 font-sans tracking-[0.4em] mb-4 text-sm md:text-base">
+            <motion.p 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: 0.5, duration: 1 } }}
+                className="text-gray-400 font-sans tracking-[0.4em] mb-6 text-sm md:text-base uppercase"
+            >
               {scene.lines[0]}
-            </p>
-            <h1 className="text-5xl md:text-8xl font-orbitron font-black text-white tracking-widest mb-12 text-glow">
+            </motion.p>
+            
+            <motion.h1 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1, transition: { delay: 1, duration: 1.5, ease: "easeOut" } }}
+                className="text-5xl md:text-9xl font-orbitron font-black text-white tracking-widest mb-12 text-glow-strong"
+            >
               {scene.lines[1]}
-            </h1>
+            </motion.h1>
             
             {scene.subText && (
-              <div className="overflow-hidden border-t border-gray-800 pt-8 mt-4">
-                 <motion.p 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1, transition: { delay: 2, duration: 1 } }}
-                    className="text-cine-blue font-sans tracking-[0.2em] animate-pulse"
-                 >
+              <motion.div 
+                className="relative mt-8 p-4 border border-white/10 bg-white/5 backdrop-blur-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { delay: 3, duration: 1 } }}
+              >
+                 <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-cine-blue" />
+                 <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-cine-blue" />
+                 <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-cine-blue" />
+                 <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-cine-blue" />
+                 
+                 <p className="text-cine-blue font-sans tracking-[0.2em] uppercase text-xs md:text-sm">
                    {scene.subText}
-                 </motion.p>
-              </div>
+                 </p>
+              </motion.div>
             )}
           </motion.div>
         );
@@ -201,14 +271,14 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
   };
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center p-8 w-full h-full">
+    <div className="absolute inset-0 flex items-center justify-center p-8 w-full h-full perspective-1000">
       <AnimatePresence mode="wait">
         <motion.div
           key={scene.id}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
           className="w-full h-full flex items-center justify-center"
+          // We handle exit animations within the specific scene renderers usually, 
+          // but having a container exit ensures clean breaks
+          exit={{ opacity: 0, transition: { duration: 0.5 } }}
         >
           {renderContent()}
         </motion.div>

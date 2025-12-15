@@ -14,8 +14,8 @@ const staggerContainer: Variants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
+      staggerChildren: 0.08, // Slightly faster stagger for improved pacing
+      delayChildren: 0.1,
     },
   },
   exit: {
@@ -25,19 +25,31 @@ const staggerContainer: Variants = {
   },
 };
 
-// Cinematic Letter Reveal
-const letterVariant: Variants = {
-  hidden: { opacity: 0, y: 30, filter: 'blur(8px)', scale: 1.1 },
+// Cinematic Letter Reveal (Up and Out) for Intro/Stack
+const cinematicRevealVariant: Variants = {
+  hidden: { 
+    opacity: 0, 
+    y: 40, 
+    scale: 0.8,
+    filter: 'blur(8px)',
+    rotateX: 45
+  },
   visible: {
     opacity: 1,
     y: 0,
-    filter: 'blur(0px)',
     scale: 1,
-    transition: { duration: 0.8, ease: [0.2, 0.65, 0.3, 0.9] },
+    filter: 'blur(0px)',
+    rotateX: 0,
+    transition: { 
+      type: "spring",
+      damping: 15,
+      stiffness: 100,
+      duration: 0.8 
+    },
   },
 };
 
-// Aggressive Slide & Slam for Stacks
+// Aggressive Slide & Slam for Stacks (Legacy/Alternative)
 const stackItemVariant: Variants = {
   hidden: { x: -100, opacity: 0, skewX: 20 },
   visible: { 
@@ -64,7 +76,7 @@ const glitchItemVariant: Variants = {
       duration: 0.3, 
       repeat: Infinity, 
       repeatType: "mirror",
-      repeatDelay: 4, // Increased delay significantly (4s between glitches)
+      repeatDelay: 4, 
       ease: "linear"
     }
   }
@@ -73,7 +85,7 @@ const glitchItemVariant: Variants = {
 // Helper to split text into letters
 const SplitText: React.FC<{ text: string; variant?: Variants; className?: string }> = ({ text, variant, className }) => {
   return (
-    <span className={`inline-block ${className}`}>
+    <span className={`inline-block whitespace-nowrap ${className}`}>
       {text.split('').map((char, i) => (
         <motion.span key={i} variants={variant} className="inline-block">
           {char === ' ' ? '\u00A0' : char}
@@ -88,8 +100,26 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
   const renderContent = () => {
     switch (scene.type) {
       case 'intro':
-      case 'hero':
         return (
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="flex flex-col items-center justify-center text-center space-y-2 md:space-y-4"
+          >
+            {scene.lines.map((line, idx) => (
+              <div key={idx} className="overflow-hidden p-2">
+                <motion.h1 className="text-4xl md:text-6xl lg:text-8xl font-orbitron font-bold tracking-widest-cine text-white text-glow">
+                  <SplitText text={line} variant={cinematicRevealVariant} />
+                </motion.h1>
+              </div>
+            ))}
+          </motion.div>
+        );
+
+      case 'hero':
+         return (
           <motion.div
             variants={staggerContainer}
             initial="hidden"
@@ -100,7 +130,7 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
             {scene.lines.map((line, idx) => (
               <div key={idx} className="overflow-hidden">
                 <motion.h1 className="text-4xl md:text-6xl lg:text-8xl font-orbitron font-bold tracking-widest-cine text-white text-glow">
-                  <SplitText text={line} variant={letterVariant} />
+                  <SplitText text={line} variant={cinematicRevealVariant} />
                 </motion.h1>
               </div>
             ))}
@@ -128,13 +158,9 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
             className="flex flex-col items-center justify-center space-y-4"
           >
             {scene.lines.map((line, idx) => (
-              <motion.h2
-                key={idx}
-                variants={stackItemVariant}
-                className="text-4xl md:text-7xl font-orbitron font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-white to-gray-400"
-              >
-                {line}
-              </motion.h2>
+              <h2 key={idx} className="text-4xl md:text-7xl font-orbitron font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-100 via-white to-gray-400">
+                  <SplitText text={line} variant={cinematicRevealVariant} />
+              </h2>
             ))}
           </motion.div>
         );

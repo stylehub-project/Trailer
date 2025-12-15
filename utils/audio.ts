@@ -1,4 +1,8 @@
 let audioCtx: AudioContext | null = null;
+let mainBus: GainNode | null = null;
+let analyser: AnalyserNode | null = null;
+let dataArray: Uint8Array | null = null;
+
 let activeNodes: AudioScheduledSourceNode[] = []; // Track oscillators to stop them
 let activeGainNodes: GainNode[] = []; // Track gains to disconnect
 
@@ -7,6 +11,19 @@ export const initAudio = () => {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (AudioContextClass) {
       audioCtx = new AudioContextClass();
+      
+      // Create Main Bus and Analyser
+      mainBus = audioCtx.createGain();
+      mainBus.gain.value = 1.0;
+      
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      
+      // Connect: MainBus -> Analyser -> Destination
+      mainBus.connect(analyser);
+      analyser.connect(audioCtx.destination);
     }
   }
   if (audioCtx && audioCtx.state === 'suspended') {
@@ -14,16 +31,30 @@ export const initAudio = () => {
   }
 };
 
+export const getAudioIntensity = (): number => {
+  if (!analyser || !dataArray) return 0;
+  analyser.getByteFrequencyData(dataArray);
+  
+  // Calculate average volume from frequency data
+  let sum = 0;
+  // Focus on lower frequencies for "beat" detection
+  const length = dataArray.length / 2; 
+  for (let i = 0; i < length; i++) {
+    sum += dataArray[i];
+  }
+  return sum / length / 255; // Normalize to 0-1
+};
+
 export const playAmbient = () => {
   if (!audioCtx) initAudio();
-  if (!audioCtx) return;
+  if (!audioCtx || !mainBus) return;
 
   stopAmbient(); // Clear previous
 
-  const masterGain = audioCtx.createGain();
-  masterGain.gain.value = 0.2; // Master volume for ambient
-  masterGain.connect(audioCtx.destination);
-  activeGainNodes.push(masterGain);
+  const masterAmbientGain = audioCtx.createGain();
+  masterAmbientGain.gain.value = 0.2; // Master volume for ambient
+  masterAmbientGain.connect(mainBus); // Connect to Main Bus instead of destination
+  activeGainNodes.push(masterAmbientGain);
 
   const t = audioCtx.currentTime;
 
@@ -41,7 +72,7 @@ export const playAmbient = () => {
   lfo1.connect(lfo1Gain);
   lfo1Gain.connect(osc1.frequency);
   
-  osc1.connect(masterGain);
+  osc1.connect(masterAmbientGain);
   osc1.start(t);
   lfo1.start(t);
   
@@ -74,7 +105,7 @@ export const playAmbient = () => {
   
   osc2.connect(filter);
   filter.connect(osc2Gain);
-  osc2Gain.connect(masterGain);
+  osc2Gain.connect(masterAmbientGain);
   
   osc2.start(t);
   lfo2.start(t);
@@ -96,7 +127,7 @@ export const stopAmbient = () => {
 };
 
 export const playSfx = (type: string | undefined) => {
-  if (!type || !audioCtx) return;
+  if (!type || !audioCtx || !mainBus) return;
   
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
@@ -109,7 +140,7 @@ export const playSfx = (type: string | undefined) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.connect(gain);
-      gain.connect(audioCtx.destination);
+      gain.connect(mainBus); // Connect to Main Bus
       
       osc.frequency.setValueAtTime(100, t);
       osc.frequency.exponentialRampToValueAtTime(0.01, t + 2.0);
@@ -141,7 +172,7 @@ export const playSfx = (type: string | undefined) => {
       gain.gain.linearRampToValueAtTime(0, t + 1.5);
       noise.connect(filter);
       filter.connect(gain);
-      gain.connect(audioCtx.destination);
+      gain.connect(mainBus); // Connect to Main Bus
       noise.start(t);
       break;
     }
@@ -152,7 +183,7 @@ export const playSfx = (type: string | undefined) => {
       const oscLow = audioCtx.createOscillator();
       const gainLow = audioCtx.createGain();
       oscLow.connect(gainLow);
-      gainLow.connect(audioCtx.destination);
+      gainLow.connect(mainBus);
       
       oscLow.frequency.setValueAtTime(150, t);
       oscLow.frequency.exponentialRampToValueAtTime(10, t + 0.5);
@@ -175,7 +206,7 @@ export const playSfx = (type: string | undefined) => {
       
       oscMid.connect(filter);
       filter.connect(gainMid);
-      gainMid.connect(audioCtx.destination);
+      gainMid.connect(mainBus);
       
       oscMid.frequency.setValueAtTime(80, t);
       oscMid.frequency.linearRampToValueAtTime(20, t + 0.3);
@@ -196,7 +227,7 @@ export const playSfx = (type: string | undefined) => {
           const gain = audioCtx.createGain();
           osc.type = i % 2 === 0 ? 'square' : 'sawtooth';
           osc.connect(gain);
-          gain.connect(audioCtx.destination);
+          gain.connect(mainBus);
           
           const offset = Math.random() * 0.4;
           const duration = 0.02 + Math.random() * 0.05;

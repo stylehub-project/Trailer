@@ -48,24 +48,28 @@ const stackItemVariant: Variants = {
   }
 };
 
-// Glitch effect that violently shakes
+// Extreme Glitch Effect
 const glitchItemVariant: Variants = {
   hidden: { opacity: 0 },
   visible: { 
-    opacity: 1,
     textShadow: [
       "0px 0px 0px rgba(0,0,0,0)",
-      "-2px 0px 0px rgba(255,0,0,0.8), 2px 0px 0px rgba(0,255,255,0.8)",
+      "-10px 2px 0px rgba(255,0,0,0.9), 10px -2px 0px rgba(0,255,255,0.9)",
+      "5px -5px 0px rgba(0,255,0,0.9), -5px 5px 0px rgba(255,0,255,0.9)",
       "0px 0px 0px rgba(0,0,0,0)",
-      "4px 0px 0px rgba(255,0,0,0.8), -4px 0px 0px rgba(0,255,255,0.8)",
+      "-15px 0px 0px rgba(255,0,0,1), 15px 0px 0px rgba(0,255,255,1)",
       "0px 0px 0px rgba(0,0,0,0)",
     ],
-    x: [0, -2, 2, -1, 1, 0],
+    x: [0, -20, 20, -5, 30, -10, 0],
+    skewX: [0, 40, -40, 10, -20, 0],
+    opacity: [1, 0.8, 1, 0.5, 1, 0.9, 1],
+    scale: [1, 1.05, 0.95, 1.1, 1],
     transition: { 
-      duration: 0.4, 
+      duration: 0.2, 
       repeat: Infinity, 
       repeatType: "mirror",
-      repeatDelay: 2
+      repeatDelay: 0.05,
+      ease: "linear"
     }
   }
 };
@@ -192,29 +196,46 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
                 variants={glitchItemVariant}
                 className="relative"
               >
-                <span className="text-5xl md:text-8xl font-mono font-bold text-white tracking-widest relative z-10 mix-blend-difference">
+                {/* Main Text */}
+                <span className="text-5xl md:text-8xl font-mono font-bold text-white tracking-widest relative z-10 mix-blend-hard-light">
                   {line}
                 </span>
-                {/* Glitch layers */}
+                
+                {/* Glitch Layer 1 - Cyan/Blue */}
                 <motion.span 
                     animate={{ 
-                        x: [0, -4, 4, 0], 
-                        opacity: [0, 0.8, 0],
-                        skewX: [0, 20, -20, 0] 
+                        x: [0, -15, 15, -5, 5, 0], 
+                        opacity: [0, 0.9, 0, 0.5, 0],
+                        skewX: [0, 30, -20, 0] 
                     }}
-                    transition={{ repeat: Infinity, duration: 0.2, repeatDelay: Math.random() * 2 }}
-                    className="absolute top-0 left-0 text-5xl md:text-8xl font-mono font-bold text-red-500 tracking-widest opacity-50 z-0"
+                    transition={{ repeat: Infinity, duration: 0.1, repeatDelay: Math.random() * 0.5 }}
+                    className="absolute top-0 left-0 text-5xl md:text-8xl font-mono font-bold text-cyan-400 tracking-widest opacity-60 z-0 mix-blend-screen"
                 >
                     {line}
                 </motion.span>
+
+                {/* Glitch Layer 2 - Red/Magenta */}
                 <motion.span 
                     animate={{ 
-                        x: [0, 4, -4, 0], 
-                        opacity: [0, 0.8, 0],
-                        skewX: [0, -10, 10, 0]
+                        x: [0, 15, -15, 5, -5, 0], 
+                        opacity: [0, 0.9, 0, 0.5, 0],
+                        skewX: [0, -30, 20, 0]
                     }}
-                    transition={{ repeat: Infinity, duration: 0.3, repeatDelay: Math.random() * 3 }}
-                    className="absolute top-0 left-0 text-5xl md:text-8xl font-mono font-bold text-cyan-500 tracking-widest opacity-50 z-0"
+                    transition={{ repeat: Infinity, duration: 0.12, repeatDelay: Math.random() * 0.4 }}
+                    className="absolute top-0 left-0 text-5xl md:text-8xl font-mono font-bold text-red-500 tracking-widest opacity-60 z-0 mix-blend-screen"
+                >
+                    {line}
+                </motion.span>
+                
+                 {/* Glitch Layer 3 - White Slice */}
+                <motion.span 
+                    animate={{ 
+                        clipPath: ['inset(40% 0 40% 0)', 'inset(10% 0 80% 0)', 'inset(80% 0 5% 0)'],
+                        x: [-5, 5, -10, 10],
+                        opacity: [0, 1, 0]
+                    }}
+                    transition={{ repeat: Infinity, duration: 0.2, repeatDelay: Math.random() * 0.3 }}
+                    className="absolute top-0 left-0 text-5xl md:text-8xl font-mono font-bold text-white tracking-widest opacity-80 z-20"
                 >
                     {line}
                 </motion.span>

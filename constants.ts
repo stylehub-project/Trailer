@@ -5,7 +5,7 @@ export interface Scene {
   lines: string[];
   subText?: string;
   type: 'intro' | 'stack' | 'hero' | 'impact' | 'final' | 'glitch';
-  soundEffect?: 'boom' | 'whoosh' | 'rise' | 'glitch' | 'ambient';
+  soundEffect?: 'boom' | 'whoosh' | 'blast' | 'glitch' | 'ambient';
 }
 
 export const SCENES: Scene[] = [
@@ -32,7 +32,7 @@ export const SCENES: Scene[] = [
     lines: ['FOR YOU'],
     subText: 'Built for the next generation of news',
     type: 'hero',
-    soundEffect: 'rise'
+    soundEffect: 'blast'
   },
   {
     id: 4,
@@ -66,7 +66,7 @@ export const SCENES: Scene[] = [
     lines: ['FOR NEWS'],
     subText: 'Beyond headlines. Beyond limits.',
     type: 'hero',
-    soundEffect: 'rise'
+    soundEffect: 'blast'
   },
   {
     id: 8,
@@ -91,7 +91,7 @@ export const SCENES: Scene[] = [
     lines: ['BEYOND', 'IMAGINATION'],
     subText: 'Beyond thinking',
     type: 'hero',
-    soundEffect: 'rise'
+    soundEffect: 'blast'
   },
   {
     id: 11,

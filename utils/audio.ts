@@ -145,19 +145,47 @@ export const playSfx = (type: string | undefined) => {
       noise.start(t);
       break;
     }
-    case 'rise': {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(100, t);
-      osc.frequency.exponentialRampToValueAtTime(1200, t + 3);
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.15, t + 2.5);
-      gain.gain.linearRampToValueAtTime(0, t + 3);
-      osc.start(t);
-      osc.stop(t + 3);
+    case 'blast': {
+      // Impact Blast - Heavy low end + distorted mid crack
+      
+      // 1. Kick/Low punch
+      const oscLow = audioCtx.createOscillator();
+      const gainLow = audioCtx.createGain();
+      oscLow.connect(gainLow);
+      gainLow.connect(audioCtx.destination);
+      
+      oscLow.frequency.setValueAtTime(150, t);
+      oscLow.frequency.exponentialRampToValueAtTime(10, t + 0.5);
+      
+      gainLow.gain.setValueAtTime(1, t);
+      gainLow.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+      
+      oscLow.start(t);
+      oscLow.stop(t + 0.5);
+
+      // 2. Crunch/Distortion layer (Square wave)
+      const oscMid = audioCtx.createOscillator();
+      const gainMid = audioCtx.createGain();
+      oscMid.type = 'square';
+      
+      // Filter the square wave so it's not too harsh
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 1000;
+      
+      oscMid.connect(filter);
+      filter.connect(gainMid);
+      gainMid.connect(audioCtx.destination);
+      
+      oscMid.frequency.setValueAtTime(80, t);
+      oscMid.frequency.linearRampToValueAtTime(20, t + 0.3);
+      
+      gainMid.gain.setValueAtTime(0.3, t);
+      gainMid.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      
+      oscMid.start(t);
+      oscMid.stop(t + 0.4);
+
       break;
     }
     case 'glitch': {

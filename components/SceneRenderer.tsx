@@ -91,7 +91,6 @@ const glitchItemVariant: Variants = {
 };
 
 // Helper to split text into letters
-// Removed explicit initial/animate to allow parent control
 const SplitText: React.FC<{ text: string; variant?: Variants; className?: string }> = ({ text, variant, className }) => {
   return (
     <motion.span 
@@ -111,6 +110,59 @@ const SceneRenderer: React.FC<SceneRendererProps> = ({ scene }) => {
   
   const renderContent = () => {
     switch (scene.type) {
+      case 'teaser':
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1, transition: { duration: 0.5 } }}
+            className="flex flex-col items-center justify-center text-center relative"
+          >
+            {/* Scanner Lines Overlay */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
+               <motion.div 
+                 animate={{ y: ['-100%', '200%'] }}
+                 transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                 className="w-full h-1 bg-cine-blue shadow-[0_0_15px_#00f0ff]"
+               />
+            </div>
+
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1, transition: { delay: 0.2 } }}
+              className="mb-2 bg-cine-blue/10 px-4 py-1 border border-cine-blue/30 inline-block backdrop-blur-md"
+            >
+               <span className="text-[10px] md:text-xs tracking-[0.4em] text-cine-blue uppercase font-bold">
+                 System Preview // Incoming
+               </span>
+            </motion.div>
+
+            <motion.h1 className="text-3xl md:text-6xl lg:text-7xl font-orbitron font-black text-white tracking-[0.3em] uppercase mb-4">
+               {scene.lines[0]}
+            </motion.h1>
+
+            {scene.subText && (
+               <motion.p 
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 0.6, transition: { delay: 0.4 } }}
+                 className="text-xs md:text-sm font-sans tracking-[0.6em] text-gray-300 uppercase max-w-2xl px-4"
+               >
+                 {scene.subText}
+               </motion.p>
+            )}
+            
+            <div className="mt-8 flex space-x-2">
+              {[1, 2, 3, 4].map(i => (
+                <motion.div 
+                  key={i}
+                  animate={{ opacity: [0.2, 1, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }}
+                  className="w-1 h-4 bg-cine-blue" 
+                />
+              ))}
+            </div>
+          </motion.div>
+        );
+
       case 'intro':
         return (
           <motion.div

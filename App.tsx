@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Background from './components/Background';
 import SceneRenderer from './components/SceneRenderer';
 import { SCENES, Scene } from './constants';
-import { Play, Volume2, Globe, Cpu, Zap, ChevronDown, ExternalLink, Download } from 'lucide-react';
+import { Play, Volume2, Globe, Cpu, Zap, ChevronDown, ExternalLink, Download, Loader2 } from 'lucide-react';
 import { initAudio, playAmbient, playSfx, stopAmbient } from './utils/audio';
 
 // Project Data
@@ -52,6 +52,7 @@ const App: React.FC = () => {
   const [currentScene, setCurrentScene] = useState<Scene>(SCENES[0]);
   const [isFinished, setIsFinished] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -107,6 +108,33 @@ const App: React.FC = () => {
        // Continue loop
        rafRef.current = requestAnimationFrame(loop);
     }
+  };
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isDownloading) return;
+
+    setIsDownloading(true);
+
+    // Simulate server processing / encoding delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Create a dummy MP4 file for demonstration
+    // In a real app, this would be a fetch to a backend endpoint or CDN URL
+    const videoContent = "CINEMATIC TRAILER 2026 - MOCK FILE DATA - [VIDEO STREAM PLACEHOLDER]"; 
+    const blob = new Blob([videoContent], { type: 'video/mp4' });
+    const url = window.URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "TRAILER_2026_HQ.mp4";
+    document.body.appendChild(a);
+    a.click();
+    
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    setIsDownloading(false);
   };
 
   // --- Timeline Interaction ---
@@ -205,22 +233,29 @@ const App: React.FC = () => {
           >
              <a 
                href="#" 
-               onClick={(e) => {
-                 // Placeholder for download logic
-                 e.preventDefault();
-                 alert("INITIATING DOWNLOAD: TRAILER_2026_HQ.MP4");
-               }}
-               className="group flex items-center gap-3 px-3 py-2 md:px-4 md:py-2 bg-black/30 border border-white/10 hover:border-cine-blue/50 backdrop-blur-md transition-all duration-300 hover:bg-white/5"
+               onClick={handleDownload}
+               className={`group flex items-center gap-3 px-3 py-2 md:px-4 md:py-2 bg-black/30 border ${isDownloading ? 'border-cine-blue bg-cine-blue/10' : 'border-white/10 hover:border-cine-blue/50'} backdrop-blur-md transition-all duration-300 hover:bg-white/5 cursor-pointer`}
              >
                <div className="hidden md:flex flex-col items-end">
-                 <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest mb-0.5 group-hover:text-cine-blue/70 transition-colors">Source_File</span>
-                 <span className="text-[10px] font-orbitron font-bold text-gray-200 tracking-wider group-hover:text-cine-blue transition-colors">DOWNLOAD TRAILER</span>
+                 <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest mb-0.5 group-hover:text-cine-blue/70 transition-colors">
+                   {isDownloading ? 'PROCESSING...' : 'SOURCE_FILE'}
+                 </span>
+                 <span className={`text-[10px] font-orbitron font-bold tracking-wider transition-colors ${isDownloading ? 'text-cine-blue' : 'text-gray-200 group-hover:text-cine-blue'}`}>
+                   {isDownloading ? 'PREPARING MP4' : 'DOWNLOAD TRAILER'}
+                 </span>
                </div>
-               {/* Mobile Text */}
-               <span className="md:hidden text-[10px] font-orbitron font-bold text-gray-200 tracking-wider group-hover:text-cine-blue">MP4</span>
                
-               <div className="p-1 rounded-sm bg-white/5 group-hover:bg-cine-blue/10 transition-colors">
-                  <Download className="w-3.5 h-3.5 text-gray-400 group-hover:text-cine-blue transition-colors" />
+               {/* Mobile Text */}
+               <span className={`md:hidden text-[10px] font-orbitron font-bold tracking-wider ${isDownloading ? 'text-cine-blue' : 'text-gray-200 group-hover:text-cine-blue'}`}>
+                  {isDownloading ? '...' : 'MP4'}
+               </span>
+               
+               <div className={`p-1 rounded-sm transition-colors ${isDownloading ? 'bg-cine-blue/20' : 'bg-white/5 group-hover:bg-cine-blue/10'}`}>
+                  {isDownloading ? (
+                    <Loader2 className="w-3.5 h-3.5 text-cine-blue animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 text-gray-400 group-hover:text-cine-blue transition-colors" />
+                  )}
                </div>
              </a>
           </motion.div>

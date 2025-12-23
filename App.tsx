@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Background from './components/Background';
 import SceneRenderer from './components/SceneRenderer';
 import { SCENES, Scene } from './constants';
-import { Play, Volume2, Globe, Cpu, Zap, ChevronDown, ExternalLink } from 'lucide-react';
+import { Play, Volume2, Globe, Cpu, Zap, ChevronDown, ExternalLink, Download } from 'lucide-react';
 import { initAudio, playAmbient, playSfx, stopAmbient } from './utils/audio';
 
 // Project Data
@@ -195,6 +195,35 @@ const App: React.FC = () => {
               </h3>
             </motion.div>
           </div>
+
+          {/* --- TOP RIGHT: Download Action --- */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="absolute top-5 right-5 md:top-8 md:right-8 z-50"
+          >
+             <a 
+               href="#" 
+               onClick={(e) => {
+                 // Placeholder for download logic
+                 e.preventDefault();
+                 alert("INITIATING DOWNLOAD: TRAILER_2026_HQ.MP4");
+               }}
+               className="group flex items-center gap-3 px-3 py-2 md:px-4 md:py-2 bg-black/30 border border-white/10 hover:border-cine-blue/50 backdrop-blur-md transition-all duration-300 hover:bg-white/5"
+             >
+               <div className="hidden md:flex flex-col items-end">
+                 <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest mb-0.5 group-hover:text-cine-blue/70 transition-colors">Source_File</span>
+                 <span className="text-[10px] font-orbitron font-bold text-gray-200 tracking-wider group-hover:text-cine-blue transition-colors">DOWNLOAD TRAILER</span>
+               </div>
+               {/* Mobile Text */}
+               <span className="md:hidden text-[10px] font-orbitron font-bold text-gray-200 tracking-wider group-hover:text-cine-blue">MP4</span>
+               
+               <div className="p-1 rounded-sm bg-white/5 group-hover:bg-cine-blue/10 transition-colors">
+                  <Download className="w-3.5 h-3.5 text-gray-400 group-hover:text-cine-blue transition-colors" />
+               </div>
+             </a>
+          </motion.div>
 
           {/* --- CENTER: Main Reactor Button --- */}
           <div className="flex flex-col items-center justify-center min-h-[60vh] md:min-h-[70vh] w-full">

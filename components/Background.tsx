@@ -264,7 +264,7 @@ const Background: React.FC = () => {
       <div className="absolute inset-0 opacity-[0.07] bg-noise mix-blend-overlay pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black opacity-80" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#000_120%)]" />
-      <canvas ref={canvasRef} className="absolute inset-0 opacity-50 pointer-events-auto" />
+      <canvas id="bg-canvas" ref={canvasRef} className="absolute inset-0 opacity-50 pointer-events-auto" />
     </div>
   );
 };

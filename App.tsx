@@ -46,10 +46,6 @@ const PROJECTS = [
   }
 ];
 
-// A minimal valid MP4 file (Base64 encoded) to ensure download works without CORS issues.
-// This represents a placeholder video file.
-const MOCK_VIDEO_B64 = "AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAChtZGF0YgAAAABhYmZj0AABAAABAAABAAAAAAAAAAAAAAAADXdleAALAAAAGnVsYSMAAAAAAAACAAAAB6dtZFoAAAAAAAAAA21oZMQAAAAAYabCQGGmwkAAAH0AAAAAAQAAAAEAAAAAAAJ0cmFrAAAAXHRraGQAAAAAYabCQGGmwkAAAAABAAAAAAAAAAAAAAABAAAAAQAAAAAAAgAAAAJtZGlhAAAAIG1kaGQAAAAAYabCQGGmwkAAAH0AAAAAA5cAAAAAAAloZGxyAAAAAAAAAAB2aWRlAAAAAAAAAAAAAAAAVmlkZW9IYW5kbGVyAAAAAVBtaW5mAAAAFHZtaGQAAAAQAAAAAAAAAAAAAAACZGluZgAAABx1cmwgAAAAAQAAAAAAAQAAAAAAAAAAAAAAXHN0YmwAAABwc3RzZAAAAAAAAAABAAAANGF2YzEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAQABAAAAAAEgYXdjMQAAAAAAAAAAAAAYc3R0cwAAAAAAAAABAAAAAQAAAAAAAAAcc3RzYwAAAAAAAAABAAAAAQAAAAEAAAABAAAAFHN0c3oAAAAAAAAAEwAAAAEAAAAUc3RjbwAAAAAAAAABAAAAIAAAAUB1ZHRhAAAAZ21ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbTphdGEAAAAQZGF0YQAAAAEAAAAAMCAK";
-
 const App: React.FC = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -118,46 +114,76 @@ const App: React.FC = () => {
     e.preventDefault();
     if (downloadingFormat) return;
 
+    // TARGET THE BACKGROUND CANVAS FOR REAL RECORDING
+    const canvas = document.getElementById('bg-canvas') as HTMLCanvasElement;
+    
+    if (!canvas) {
+        alert("SYSTEM ERROR: VIDEO SOURCE UNAVAILABLE.");
+        return;
+    }
+
     setDownloadingFormat(format);
 
     try {
-      // Simulate encoding/server delay for cinematic effect
-      await new Promise(resolve => setTimeout(resolve, 2000));
+        // --- BROWSER SUPPORT CHECK ---
+        const types = [
+            "video/mp4",
+            "video/webm;codecs=vp9",
+            "video/webm"
+        ];
+        const mimeType = types.find(t => MediaRecorder.isTypeSupported(t));
 
-      // Convert Base64 to Blob
-      // This bypasses CORS issues by generating the file client-side
-      const byteCharacters = atob(MOCK_VIDEO_B64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const mime = format === 'mp4' ? 'video/mp4' : 'video/quicktime';
-      const blob = new Blob([byteArray], { type: mime });
-      
-      const url = window.URL.createObjectURL(blob);
-      
-      // Determine filename
-      const filename = format === 'mp4' ? 'TRAILER_2026_HD.mp4' : 'TRAILER_2026_4K_MASTER.mov';
-      
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Cleanup
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }, 100);
+        if (!mimeType) {
+            throw new Error("Recording not supported in this browser.");
+        }
+
+        // --- START RECORDING ---
+        // Capture stream at 30fps
+        const stream = (canvas as any).captureStream ? (canvas as any).captureStream(30) : null;
+        if (!stream) throw new Error("Canvas capture not supported.");
+
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
+        const chunks: BlobPart[] = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+             const blob = new Blob(chunks, { type: mimeType });
+             const url = window.URL.createObjectURL(blob);
+             
+             // Create download link
+             const a = document.createElement('a');
+             a.style.display = 'none';
+             a.href = url;
+             
+             // Determine appropriate extension based on what the browser actually recorded
+             const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+             a.download = `TRAILER_2026_ASSET.${extension}`;
+             
+             document.body.appendChild(a);
+             a.click();
+             
+             // Cleanup
+             setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                setDownloadingFormat(null);
+             }, 100);
+        };
+
+        mediaRecorder.start();
+
+        // Record for 3 seconds to get a valid video file
+        setTimeout(() => {
+            mediaRecorder.stop();
+        }, 3000);
 
     } catch (err) {
-      console.error("Download failed:", err);
-      alert("SYSTEM ERROR: LOCAL FILE GENERATION FAILED.");
-    } finally {
-      setDownloadingFormat(null);
+        console.error("Recording failed:", err);
+        setDownloadingFormat(null);
+        alert("SYSTEM ERROR: UNABLE TO CAPTURE LOCAL VIDEO STREAM.\n\n(Browser may not support Canvas Recording)");
     }
   };
 
@@ -272,7 +298,7 @@ const App: React.FC = () => {
                    1080p_HEVC
                  </span>
                  <span className={`text-[10px] font-orbitron font-bold tracking-wider transition-colors ${downloadingFormat === 'mp4' ? 'text-cine-blue' : 'text-gray-200 group-hover:text-cine-blue'}`}>
-                   {downloadingFormat === 'mp4' ? 'GENERATING...' : 'DOWNLOAD MP4'}
+                   {downloadingFormat === 'mp4' ? 'CAPTURING...' : 'DOWNLOAD MP4'}
                  </span>
                </div>
                {/* Mobile Text */}
@@ -299,7 +325,7 @@ const App: React.FC = () => {
                    4K_PRORES
                  </span>
                  <span className={`text-[10px] font-orbitron font-bold tracking-wider transition-colors ${downloadingFormat === 'mov' ? 'text-purple-400' : 'text-gray-200 group-hover:text-purple-400'}`}>
-                   {downloadingFormat === 'mov' ? 'GENERATING...' : 'DOWNLOAD MOV'}
+                   {downloadingFormat === 'mov' ? 'CAPTURING...' : 'DOWNLOAD MOV'}
                  </span>
                </div>
                {/* Mobile Text */}

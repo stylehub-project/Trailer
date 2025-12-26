@@ -46,6 +46,10 @@ const PROJECTS = [
   }
 ];
 
+// A minimal valid MP4 file (Base64 encoded) to ensure download works without CORS issues.
+// This represents a placeholder video file.
+const MOCK_VIDEO_B64 = "AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAChtZGF0YgAAAABhYmZj0AABAAABAAABAAAAAAAAAAAAAAAADXdleAALAAAAGnVsYSMAAAAAAAACAAAAB6dtZFoAAAAAAAAAA21oZMQAAAAAYabCQGGmwkAAAH0AAAAAAQAAAAEAAAAAAAJ0cmFrAAAAXHRraGQAAAAAYabCQGGmwkAAAAABAAAAAAAAAAAAAAABAAAAAQAAAAAAAgAAAAJtZGlhAAAAIG1kaGQAAAAAYabCQGGmwkAAAH0AAAAAA5cAAAAAAAloZGxyAAAAAAAAAAB2aWRlAAAAAAAAAAAAAAAAVmlkZW9IYW5kbGVyAAAAAVBtaW5mAAAAFHZtaGQAAAAQAAAAAAAAAAAAAAACZGluZgAAABx1cmwgAAAAAQAAAAAAAQAAAAAAAAAAAAAAXHN0YmwAAABwc3RzZAAAAAAAAAABAAAANGF2YzEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAQABAAAAAAEgYXdjMQAAAAAAAAAAAAAYc3R0cwAAAAAAAAABAAAAAQAAAAAAAAAcc3RzYwAAAAAAAAABAAAAAQAAAAEAAAABAAAAFHN0c3oAAAAAAAAAEwAAAAEAAAAUc3RjbwAAAAAAAAABAAAAIAAAAUB1ZHRhAAAAZ21ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbTphdGEAAAAQZGF0YQAAAAEAAAAAMCAK";
+
 const App: React.FC = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -117,14 +121,20 @@ const App: React.FC = () => {
     setDownloadingFormat(format);
 
     try {
-      // Using a reliable sample video URL (Sintel Trailer) which usually supports CORS
-      // This ensures the user downloads a real video file instead of a text blob.
-      const VIDEO_URL = "https://media.w3.org/2010/05/sintel/trailer.mp4"; 
+      // Simulate encoding/server delay for cinematic effect
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Convert Base64 to Blob
+      // This bypasses CORS issues by generating the file client-side
+      const byteCharacters = atob(MOCK_VIDEO_B64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const mime = format === 'mp4' ? 'video/mp4' : 'video/quicktime';
+      const blob = new Blob([byteArray], { type: mime });
       
-      const response = await fetch(VIDEO_URL);
-      if (!response.ok) throw new Error("Failed to fetch video file");
-      
-      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       
       // Determine filename
@@ -145,7 +155,7 @@ const App: React.FC = () => {
 
     } catch (err) {
       console.error("Download failed:", err);
-      alert("SYSTEM ERROR: UNABLE TO RETRIEVE SOURCE FILE.\n\n(Network restriction or CORS policy prevented the download of the sample video.)");
+      alert("SYSTEM ERROR: LOCAL FILE GENERATION FAILED.");
     } finally {
       setDownloadingFormat(null);
     }

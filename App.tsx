@@ -116,28 +116,39 @@ const App: React.FC = () => {
 
     setDownloadingFormat(format);
 
-    // Simulate server processing / encoding delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Using a reliable sample video URL (Sintel Trailer) which usually supports CORS
+      // This ensures the user downloads a real video file instead of a text blob.
+      const VIDEO_URL = "https://media.w3.org/2010/05/sintel/trailer.mp4"; 
+      
+      const response = await fetch(VIDEO_URL);
+      if (!response.ok) throw new Error("Failed to fetch video file");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      // Determine filename
+      const filename = format === 'mp4' ? 'TRAILER_2026_HD.mp4' : 'TRAILER_2026_4K_MASTER.mov';
+      
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
 
-    const filename = format === 'mp4' ? 'TRAILER_2026_HD.mp4' : 'TRAILER_2026_4K_MASTER.mov';
-    const mime = format === 'mp4' ? 'video/mp4' : 'video/quicktime';
-    
-    // Create a dummy file for demonstration
-    // In a real app, this would be a fetch to a backend endpoint or CDN URL
-    const videoContent = `CINEMATIC TRAILER 2026 - ${format.toUpperCase()} DATA - [VIDEO STREAM PLACEHOLDER]`; 
-    const blob = new Blob([videoContent], { type: mime });
-    const url = window.URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    
-    setDownloadingFormat(null);
+    } catch (err) {
+      console.error("Download failed:", err);
+      alert("SYSTEM ERROR: UNABLE TO RETRIEVE SOURCE FILE.\n\n(Network restriction or CORS policy prevented the download of the sample video.)");
+    } finally {
+      setDownloadingFormat(null);
+    }
   };
 
   // --- Timeline Interaction ---
